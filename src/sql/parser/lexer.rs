@@ -128,6 +128,7 @@ pub enum Keyword {
     System,
     Table,
     Text,
+    Thankyou,
     Time,
     Transaction,
     True,
@@ -199,6 +200,7 @@ impl Keyword {
             "SYSTEM" => Self::System,
             "TABLE" => Self::Table,
             "TEXT" => Self::Text,
+            "THANKYOU" => Self::Thankyou,
             "TIME" => Self::Time,
             "TRANSACTION" => Self::Transaction,
             "TRUE" => Self::True,
@@ -270,6 +272,7 @@ impl Keyword {
             Self::System => "SYSTEM",
             Self::Table => "TABLE",
             Self::Text => "TEXT",
+            Self::Thankyou => "THANKYOU",
             Self::Time => "TIME",
             Self::Transaction => "TRANSACTION",
             Self::True => "TRUE",
@@ -300,7 +303,9 @@ impl<'a> Iterator for Lexer<'a> {
     fn next(&mut self) -> Option<Result<Token>> {
         match self.scan() {
             Ok(Some(token)) => Some(Ok(token)),
-            Ok(None) => self.iter.peek().map(|c| Err(Error::Parse(format!("Unexpected character {}", c)))),
+            Ok(None) => {
+                self.iter.peek().map(|c| Err(Error::Parse(format!("Unexpected character {}", c))))
+            }
             Err(err) => Some(Err(err)),
         }
     }

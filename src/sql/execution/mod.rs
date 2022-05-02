@@ -118,6 +118,9 @@ pub enum ResultSet {
     },
     // Explain result
     Explain(Node),
+    Thankyou {
+        message: String,
+    },
 }
 
 impl ResultSet {

@@ -113,6 +113,8 @@ impl<'a> Parser<'a> {
 
             Some(Token::Keyword(Keyword::Explain)) => self.parse_statement_explain(),
 
+            Some(Token::Keyword(Keyword::Thankyou)) => self.parse_statement_thankyou(),
+
             Some(token) => Err(Error::Parse(format!("Unexpected token {}", token))),
             None => Err(Error::Parse("Unexpected end of input".into())),
         }
@@ -230,6 +232,13 @@ impl<'a> Parser<'a> {
             return Err(Error::Parse("Cannot nest EXPLAIN statements".into()));
         }
         Ok(ast::Statement::Explain(Box::new(self.parse_statement()?)))
+    }
+
+    fn parse_statement_thankyou(&mut self) -> Result<ast::Statement> {
+        match self.next()? {
+            Token::Keyword(Keyword::Thankyou) => Ok(ast::Statement::Thankyou),
+            token => Err(Error::Parse(format!("Unexpected token {}", token))),
+        }
     }
 
     /// Parses an insert statement

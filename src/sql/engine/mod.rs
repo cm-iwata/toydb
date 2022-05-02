@@ -72,6 +72,10 @@ impl<E: Engine + 'static> Session<E> {
         // error[E0009]: cannot bind by-move and by-ref in the same pattern
         // ...which seems like an arbitrary compiler limitation
         match Parser::new(query).parse()? {
+            ast::Statement::Thankyou => {
+                Ok(ResultSet::Thankyou { message: "Your Welcome!!".to_string() })
+            }
+
             ast::Statement::Begin { .. } if self.txn.is_some() => {
                 Err(Error::Value("Already in a transaction".into()))
             }

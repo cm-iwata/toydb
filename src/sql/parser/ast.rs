@@ -47,6 +47,7 @@ pub enum Statement {
         offset: Option<Expression>,
         limit: Option<Expression>,
     },
+    Thankyou,
 }
 
 /// A FROM item

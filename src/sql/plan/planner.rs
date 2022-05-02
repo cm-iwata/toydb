@@ -38,6 +38,10 @@ impl<'a, C: Catalog> Planner<'a, C> {
                 return Err(Error::Internal("Unexpected explain statement".into()))
             }
 
+            ast::Statement::Thankyou => {
+                return Err(Error::Internal("Unexpected thankyou statement".into()))
+            }
+
             // DDL statements (schema changes).
             ast::Statement::CreateTable { name, columns } => Node::CreateTable {
                 schema: Table::new(

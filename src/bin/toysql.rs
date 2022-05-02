@@ -187,6 +187,7 @@ SQL txns:  {txns_active} active, {txns} total ({sql_storage} storage)
             ResultSet::CreateTable { name } => println!("Created table {}", name),
             ResultSet::DropTable { name } => println!("Dropped table {}", name),
             ResultSet::Explain(plan) => println!("{}", plan.to_string()),
+            ResultSet::Thankyou { message } => println!("{}", message),
             ResultSet::Query { columns, mut rows } => {
                 if self.show_headers {
                     println!(
