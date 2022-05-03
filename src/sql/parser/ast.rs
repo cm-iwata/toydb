@@ -38,6 +38,7 @@ pub enum Statement {
     },
 
     Select {
+        with_please: bool,
         select: Vec<(Expression, Option<String>)>,
         from: Vec<FromItem>,
         r#where: Option<Expression>,

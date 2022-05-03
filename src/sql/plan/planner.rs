@@ -123,6 +123,7 @@ impl<'a, C: Catalog> Planner<'a, C> {
 
             // Queries.
             ast::Statement::Select {
+                with_please,
                 mut select,
                 from,
                 r#where,

@@ -22,7 +22,7 @@ impl<'a> Parser<'a> {
 
     /// Parses the input string into an AST statement
     pub fn parse(&mut self) -> Result<ast::Statement> {
-        let statement = self.parse_statement()?;
+        let statement = self.parse_statement(false)?;
         self.next_if_token(Token::Semicolon);
         self.next_expect(None)?;
         Ok(statement)
@@ -97,8 +97,10 @@ impl<'a> Parser<'a> {
     }
 
     /// Parses an SQL statement
-    fn parse_statement(&mut self) -> Result<ast::Statement> {
+    fn parse_statement(&mut self, with_please: bool) -> Result<ast::Statement> {
         match self.peek()? {
+            Some(Token::Keyword(Keyword::Please)) => self.parse_statement_please(),
+
             Some(Token::Keyword(Keyword::Begin)) => self.parse_transaction(),
             Some(Token::Keyword(Keyword::Commit)) => self.parse_transaction(),
             Some(Token::Keyword(Keyword::Rollback)) => self.parse_transaction(),
@@ -108,7 +110,7 @@ impl<'a> Parser<'a> {
 
             Some(Token::Keyword(Keyword::Delete)) => self.parse_statement_delete(),
             Some(Token::Keyword(Keyword::Insert)) => self.parse_statement_insert(),
-            Some(Token::Keyword(Keyword::Select)) => self.parse_statement_select(),
+            Some(Token::Keyword(Keyword::Select)) => self.parse_statement_select(with_please),
             Some(Token::Keyword(Keyword::Update)) => self.parse_statement_update(),
 
             Some(Token::Keyword(Keyword::Explain)) => self.parse_statement_explain(),
@@ -231,13 +233,23 @@ impl<'a> Parser<'a> {
         if let Some(Token::Keyword(Keyword::Explain)) = self.peek()? {
             return Err(Error::Parse("Cannot nest EXPLAIN statements".into()));
         }
-        Ok(ast::Statement::Explain(Box::new(self.parse_statement()?)))
+        Ok(ast::Statement::Explain(Box::new(self.parse_statement(false)?)))
     }
 
     fn parse_statement_thankyou(&mut self) -> Result<ast::Statement> {
         match self.next()? {
             Token::Keyword(Keyword::Thankyou) => Ok(ast::Statement::Thankyou),
             token => Err(Error::Parse(format!("Unexpected token {}", token))),
+        }
+    }
+
+    fn parse_statement_please(&mut self) -> Result<ast::Statement> {
+        self.next_expect(Some(Keyword::Please.into()))?;
+
+        match self.peek()? {
+            Some(Token::Keyword(Keyword::Select)) => self.parse_statement(true),
+            Some(token) => Err(Error::Parse(format!("Unexpected token {}", token))),
+            None => Err(Error::Parse("Unexpected end of input".into())),
         }
     }
 
@@ -285,8 +297,9 @@ impl<'a> Parser<'a> {
     }
 
     /// Parses a select statement
-    fn parse_statement_select(&mut self) -> Result<ast::Statement> {
+    fn parse_statement_select(&mut self, with_please: bool) -> Result<ast::Statement> {
         Ok(ast::Statement::Select {
+            with_please,
             select: self.parse_clause_select()?,
             from: self.parse_clause_from()?,
             r#where: self.parse_clause_where()?,
