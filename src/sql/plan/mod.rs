@@ -118,6 +118,7 @@ pub enum Node {
         table: String,
         alias: Option<String>,
         filter: Option<Expression>,
+        with_please: bool,
     },
     Update {
         table: String,
@@ -241,9 +242,12 @@ impl Node {
                     .map(|(e, l)| Ok((e.transform(before, after)?, l)))
                     .collect::<Result<_>>()?,
             },
-            Self::Scan { table, alias, filter: Some(filter) } => {
-                Self::Scan { table, alias, filter: Some(filter.transform(before, after)?) }
-            }
+            Self::Scan { table, alias, filter: Some(filter), with_please } => Self::Scan {
+                table,
+                alias,
+                filter: Some(filter.transform(before, after)?),
+                with_please,
+            },
             Self::Update { table, source, expressions } => Self::Update {
                 table,
                 source,
@@ -381,7 +385,7 @@ impl Node {
                 );
                 s += &source.format(indent, false, true);
             }
-            Self::Scan { table, alias, filter } => {
+            Self::Scan { table, alias, filter, with_please } => {
                 s += &format!("Scan: {}", table);
                 if let Some(alias) = alias {
                     s += &format!(" as {}", alias);

@@ -81,6 +81,7 @@ impl<'a, C: Catalog> Planner<'a, C> {
                         table,
                         alias: None,
                         filter: r#where.map(|e| self.build_expression(scope, e)).transpose()?,
+                        with_please: false,
                     }),
                 }
             }
@@ -107,6 +108,7 @@ impl<'a, C: Catalog> Planner<'a, C> {
                         table,
                         alias: None,
                         filter: r#where.map(|e| self.build_expression(scope, e)).transpose()?,
+                        with_please: false,
                     }),
                     expressions: set
                         .into_iter()
@@ -137,7 +139,7 @@ impl<'a, C: Catalog> Planner<'a, C> {
 
                 // Build FROM clause.
                 let mut node = if !from.is_empty() {
-                    self.build_from_clause(scope, from)?
+                    self.build_from_clause(scope, from, with_please)?
                 } else if select.is_empty() {
                     return Err(Error::Value("Can't select * without a table".into()));
                 } else {
@@ -262,16 +264,21 @@ impl<'a, C: Catalog> Planner<'a, C> {
     /// Builds a FROM clause consisting of several items. Each item is either a single table or a
     /// join of an arbitrary number of tables. All of the items are joined, since e.g. 'SELECT * FROM
     /// a, b' is an implicit join of a and b.
-    fn build_from_clause(&self, scope: &mut Scope, from: Vec<ast::FromItem>) -> Result<Node> {
+    fn build_from_clause(
+        &self,
+        scope: &mut Scope,
+        from: Vec<ast::FromItem>,
+        with_please: bool,
+    ) -> Result<Node> {
         let base_scope = scope.clone();
         let mut items = from.into_iter();
         let mut node = match items.next() {
-            Some(item) => self.build_from_item(scope, item)?,
+            Some(item) => self.build_from_item(scope, item, with_please)?,
             None => return Err(Error::Value("No from items given".into())),
         };
         for item in items {
             let mut right_scope = base_scope.clone();
-            let right = self.build_from_item(&mut right_scope, item)?;
+            let right = self.build_from_item(&mut right_scope, item, with_please)?;
             node = Node::NestedLoopJoin {
                 left: Box::new(node),
                 left_size: scope.len(),
@@ -288,14 +295,19 @@ impl<'a, C: Catalog> Planner<'a, C> {
     /// e.g. 'SELECT * FROM a LEFT JOIN b ON b.a_id = a.id'. Any tables will be stored in
     /// self.tables keyed by their query name (i.e. alias if given, otherwise name). The table can
     /// only be referenced by the query name (so if alias is given, cannot reference by name).
-    fn build_from_item(&self, scope: &mut Scope, item: ast::FromItem) -> Result<Node> {
+    fn build_from_item(
+        &self,
+        scope: &mut Scope,
+        item: ast::FromItem,
+        with_please: bool,
+    ) -> Result<Node> {
         Ok(match item {
             ast::FromItem::Table { name, alias } => {
                 scope.add_table(
                     alias.clone().unwrap_or_else(|| name.clone()),
                     self.catalog.must_read_table(&name)?,
                 )?;
-                Node::Scan { table: name, alias, filter: None }
+                Node::Scan { table: name, alias, filter: None, with_please }
             }
 
             ast::FromItem::Join { left, right, r#type, predicate } => {
@@ -305,9 +317,9 @@ impl<'a, C: Catalog> Planner<'a, C> {
                     ast::JoinType::Right => (right, left),
                     _ => (left, right),
                 };
-                let left = Box::new(self.build_from_item(scope, *left)?);
+                let left = Box::new(self.build_from_item(scope, *left, with_please)?);
                 let left_size = scope.len();
-                let right = Box::new(self.build_from_item(scope, *right)?);
+                let right = Box::new(self.build_from_item(scope, *right, with_please)?);
                 let predicate = predicate.map(|e| self.build_expression(scope, e)).transpose()?;
                 let outer = match r#type {
                     ast::JoinType::Cross | ast::JoinType::Inner => false,

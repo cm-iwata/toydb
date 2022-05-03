@@ -180,7 +180,11 @@ impl<'a, C: Catalog> IndexLookup<'a, C> {
 impl<'a, C: Catalog> Optimizer for IndexLookup<'a, C> {
     fn optimize(&self, node: Node) -> Result<Node> {
         node.transform(&|n| Ok(n), &|n| match n {
-            Node::Scan { table, alias, filter: Some(filter) } => {
+            Node::Scan { table, alias, filter: Some(filter), with_please } => {
+                if !with_please {
+                    return Ok(Node::Scan { table, alias, filter: Some(filter), with_please });
+                }
+
                 let columns = self.catalog.must_read_table(&table)?.columns;
                 let pk = columns.iter().position(|c| c.primary_key).unwrap();
 
@@ -208,7 +212,7 @@ impl<'a, C: Catalog> Optimizer for IndexLookup<'a, C> {
                         }
                     }
                 }
-                Ok(Node::Scan { table, alias, filter: Some(filter) })
+                Ok(Node::Scan { table, alias, filter: Some(filter), with_please })
             }
             n => Ok(n),
         })

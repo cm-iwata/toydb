@@ -61,7 +61,7 @@ impl<T: Transaction + 'static> dyn Executor<T> {
             Node::Projection { source, expressions } => {
                 Projection::new(Self::build(*source), expressions)
             }
-            Node::Scan { table, filter, alias: _ } => Scan::new(table, filter),
+            Node::Scan { table, filter, alias: _, with_please: _ } => Scan::new(table, filter),
             Node::Update { table, source, expressions } => Update::new(
                 table,
                 Self::build(*source),
