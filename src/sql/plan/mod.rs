@@ -386,7 +386,7 @@ impl Node {
                 s += &source.format(indent, false, true);
             }
             Self::Scan { table, alias, filter, with_please } => {
-                s += &format!("Scan: {}", table);
+                s += &format!("Scan: {} with please: {}", table, with_please);
                 if let Some(alias) = alias {
                     s += &format!(" as {}", alias);
                 }
